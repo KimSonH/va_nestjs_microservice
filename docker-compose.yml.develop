@@ -1,0 +1,85 @@
+version: '3.8'
+services:
+  # zookeeper:
+  #   image: 'docker.io/bitnami/zookeeper:3-debian-10'
+  #   ports:
+  #     - 2181:2181
+  #   environment:
+  #     - ALLOW_ANONYMOUS_LOGIN=yes
+  #   networks:
+  #     - 'va_be_network_nestjs'
+
+  # kafka:
+  #   image: 'docker.io/bitnami/kafka:2-debian-10'
+  #   ports:
+  #     - 9092:9092
+  #     - 9093:9093
+  #   environment:
+  #     - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+  #     - ALLOW_PLAINTEXT_LISTENER=yes
+  #     - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+  #     - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+  #     - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9093
+  #     - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://localhost:9092,EXTERNAL://localhost:9093
+  #     - KAFKA_INTER_BROKER_LISTENER_NAME=CLIENT
+  #   depends_on:
+  #     - zookeeper
+  #   networks:
+  #     - 'va_be_network_nestjs'
+
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    volumes:
+      - .:/usr/data
+    networks:
+      - 'va_be_network_nestjs'
+
+  # mongodb:
+  #   container_name: mongodb
+  #   build: ./mongodb_rs
+  #   restart: always
+  #   env_file:
+  #     - ./.env
+  #   environment:
+  #     MONGO_REPLICA_HOST: localhost
+  #     MONGO_REPLICA_PORT: 27017
+  #     MONGO_INITDB_ROOT_USERNAME: root
+  #     MONGO_INITDB_ROOT_PASSWORD: prisma
+  #   # volumes:
+  #   #   - ./mongodb:/data/db
+  #   ports:
+  #     - 27017:27017
+  #   networks:
+  #     - 'va_be_network_nestjs'
+
+  api:
+    build:
+      dockerfile: ./buildOps/Dockerfile
+      context: .
+      # Only will build development stage from our dockerfile
+      target: development
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      - '/etc/timezone:/etc/timezone:ro'
+      - '/etc/localtime:/etc/localtime:ro'
+    command: npm run start:dev
+    env_file:
+      - ./.env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    # Run a command against the development stage of the image
+    ports:
+      - 3344:3344
+      # - 9229:9229 # Port debugger
+    networks:
+      - 'va_be_network_nestjs'
+
+networks:
+  va_be_network_nestjs:
+    driver: bridge
+
+volumes:
+  data:

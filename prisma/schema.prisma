@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["mongodb"]
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum LANGUAGES {
+  EN
+  JA
+  VI
+}
+
+model User {
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  first_name         String       @map("firstName")
+  last_name          String       @map("lastName")
+  email              String
+  language           LANGUAGES    @default(value: EN)
+  created_at         DateTime     @default(now()) @map("createdAt")
+  updated_at         DateTime     @updatedAt @map("updatedAt")
+  deleted_at         DateTime?    @map("deletedAt")
+  password           String
+  is_email_confirmed Boolean      @default(false) @map("isEmailConfirmed")
+  google_id          String?      @map("googleId")
+  email_login        Boolean      @default(false) @map("emailLogin")
+  status             Boolean      @default(false)
+  tokens             Token?
+  attendances        Attendance[]
+  uploads            Upload?
+
+  @@index([email])
+  @@index([first_name, last_name])
+  @@map("users")
+}
+
+model Token {
+  id                      String    @id @default(auto()) @map("_id") @db.ObjectId
+  hashed_refresh_token    String?   @unique @map("hashedRefreshToken")
+  hashed_refresh_token_sp String?   @unique @map("hashedRefreshTokenSP")
+  user_id                 String    @unique @map("userId")
+  user                    User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at              DateTime  @default(now()) @map("createdAt")
+  updated_at              DateTime  @updatedAt @map("updatedAt")
+  deleted_at              DateTime? @map("deletedAt")
+
+  @@map("tokens")
+}
+
+model Admin {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  first_name String    @map("firstName")
+  last_name  String    @map("lastName")
+  email      String
+  password   String
+  language   LANGUAGES @default(value: EN)
+  camera     Boolean   @default(false)
+  created_at DateTime  @default(now()) @map("createdAt")
+  updated_at DateTime  @updatedAt @map("updatedAt")
+  deleted_at DateTime? @map("deletedAt")
+
+  @@index([first_name, last_name])
+  @@map("admins")
+}
+
+model Attendance {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  user_id    String?   @map("userId")
+  user       User?     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  status     Boolean
+  created_at DateTime  @default(now()) @map("createdAt")
+  updated_at DateTime  @updatedAt @map("updatedAt")
+  deleted_at DateTime? @map("deletedAt")
+
+  @@map("attendances")
+}
+
+model AttendanceTime {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  time       String
+  status     Boolean
+  created_at DateTime  @default(now()) @map("createdAt")
+  updated_at DateTime  @updatedAt @map("updatedAt")
+  deleted_at DateTime? @map("deletedAt")
+
+  @@map("attendanceTimes")
+}
+
+model Upload {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  user_id    String?   @unique @map("userId")
+  user       User?     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  status     Boolean   @default(false)
+  created_at DateTime  @default(now()) @map("createdAt")
+  updated_at DateTime  @updatedAt @map("updatedAt")
+  deleted_at DateTime? @map("deletedAt")
+
+  @@map("uploads")
+}

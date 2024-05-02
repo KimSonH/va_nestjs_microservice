@@ -1,0 +1,76 @@
+services:
+  mongo:
+    container_name: mongo 
+    image: registry.canvas-works.asia/va-db:latest # use customized image from internal Docker registry
+    restart: always
+    env_file:
+      - ./buildOps/.env.mongo
+    ports:
+      - 27017:${MONGO_PORT}
+    volumes:
+      - db:/data/db
+
+  mongo-express:
+    container_name: mongo-express
+    image: mongo-express:latest
+    restart: always
+    env_file:
+      - ./buildOps/.env.express
+    ports:
+      - 28081:8081
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    volumes:
+      - .:/usr/data
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  api:
+    container_name: api-dev
+    image: api-dev
+    build:
+      context: .
+      target: development
+      dockerfile: ./buildOps/Dockerfile
+    env_file:
+      - ./buildOps/.env.api
+    ports:
+      - 3344:3344
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      - uploads:/usr/src/app/uploads # use a Docker named volume instead of bind mounting host directory
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    command: npm run start:dev -- --host
+
+  webrtc:
+    image: registry.canvas-works.asia/va-webrtc:latest
+    restart: always
+    env_file:
+      - ./buildOps/.env.webrtc
+    depends_on:
+      - api
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  mailhog:
+    image: 'mailhog/mailhog:latest'
+    ports:
+      - '${FORWARD_MAILHOG_PORT:-1025}:1025'
+      - '${FORWARD_MAILHOG_DASHBOARD_PORT:-8025}:8025'
+
+volumes:
+  db:
+  uploads:
